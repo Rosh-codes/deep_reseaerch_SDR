@@ -4,6 +4,7 @@
 venv/
 env/
 .venv/
+
 # Database
 *.db
 *.sqlite3
@@ -12,6 +13,15 @@ app/data/
 # Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+.vite/
+coverage/
 
 # OS files
 .DS_Store
