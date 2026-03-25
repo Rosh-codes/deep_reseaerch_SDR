@@ -1,61 +1,117 @@
 # Deep Research SDR Agent Pipeline
 
-An autonomous Sales Intelligence platform that ingests raw CRM datasets, research domains via live web-scraping pipelines, and outputs hyper-personalized outreach leveraging Claude 4.5 Haiku.
-
-## Architecture & Capabilities
-
-1. **RAG Database Pipeline**: Ingests flat `.csv` lead files into a highly relational local SQLite map.
-2. **AI Intent & Problem Agents**: Algorithmically predicts buying intent scores and pinpoints specific B2B operational bottlenecks dynamically.
-3. **Live Web OSINT Search**: Bypasses stagnant dataset limits by natively streaming live DuckDuckGo intelligence (company news, corporate hiring footprints, & high-res corporate media) into the context window.
-4. **Deep Sequence Modeling**: Employs Anthropic's lightning-fast `claude-haiku-4-5` to synthesize massive company intelligence profiles directly in the dashboard.
-5. **XML Robust Email Engine**: Generates highly specialized Cold, Warm, and Ignore messaging variants. Utilizes custom XML extraction logic to neutralize JSON parse truncation bugs during massive string generation.
+> An AI-powered Sales Intelligence Platform built as a multi-agent pipeline on top of **Leadsforge + Salesforge**, designed to automate B2B lead research, qualification, and outreach strategy using Claude Haiku 4.5.
 
 ---
 
-## Setup Instructions
+## What This Project Does (Current Implementation)
 
-### Environment Verification
-Ensure you have Python 3.10+ installed and create a Virtual Environment:
-```bash
-python -m venv venv
+This system takes a raw CSV dataset of 114 B2B companies (simulating Leadsforge lead data) and runs them through a **multi-agent AI pipeline** that:
 
-# Windows
-.\venv\Scripts\activate   
+1. **Ingests lead data** into a local SQLite database with full company profiles (name, industry, size, website, description, pain points)
+2. **Scores every lead** with a buying intent score (0–100) using a 7-signal heuristic model
+3. **Detects pain points** for each company based on their size, marketing spend, and engagement levels
+4. **Assigns outreach sequences** (Hot / Warm / Cold / Ignore) based on intent scores
+5. **Generates Company Intelligence Reports** using Claude Haiku — combining dataset intelligence with live website scraping (requests + BeautifulSoup) to produce detailed research on each company
+6. **Generates Outreach Strategy Plans** — lead priority, sequence cadence, channel recommendations, and conversion probability estimates
+7. **Generates 3 personalized email variants** (Problem-focused / ROI-focused / Case-study focused) using XML-based extraction to avoid JSON parsing errors
+8. **Visualizes pipeline analytics** — KPI metrics, industry/size distributions, intent score histograms, scatter plots, and sales funnel conversion charts
 
-# Mac/Linux
-source venv/bin/activate
+---
+
+## How It Works
+
+### Pipeline Initialization (`run_pipeline.py`)
 ```
+CSV Ingestion → Intent Scoring → Problem Detection → Sequence Assignment → Event Simulation
+```
+- Reads `lead_database.csv` and creates Company, Employee, and Lead records in SQLite
+- Runs 3 AI agents (Intent, Problem, Sequence) on all 114 leads
+- Simulates outreach events (opens, replies, bookings) for the analytics dashboard
 
-### Installation
+### Streamlit Dashboard (`streamlit_app.py`)
+
+**Page 1 — Sales Intelligence Platform:**
+- User types a natural language query (e.g., "find companies that need automation")
+- Claude Haiku extracts search keywords and queries the database across 6 columns (industry, company name, description, pain points, job title, lead problem)
+- User selects a lead and clicks "Generate Deep Profile"
+- System runs a 3-step chain:
+  - **Step 1:** Loads verified company data from the database
+  - **Step 2:** Scrapes the company's actual website using requests + BeautifulSoup
+  - **Step 3:** Feeds everything into Claude Haiku for analysis and report generation
+- Generates: Intelligence Report → Outreach Strategy → 3 Email Variants
+
+**Page 2 — Pipeline Analytics:**
+- KPI metrics (reply rate, booking rate, show-up rate)
+- Industry and company size distribution charts
+- Intent score histogram and sequence breakdown
+- Intent vs Revenue scatter plot (colored by industry)
+- Sales funnel conversion chart
+- AI-generated Pipeline Intelligence Report
+
+---
+
+## Setup & Run
+
 ```bash
+# Create and activate virtual environment
+python -m venv venv
+.\venv\Scripts\activate          # Windows
+
+# Install dependencies
 cd pipeline_ai
 pip install -r requirements.txt
-pip install duckduckgo-search
-```
+pip install beautifulsoup4
 
-### Configuration
-1. Open the `.env` file located in the `pipeline_ai` directory.
-2. Insert your active Anthropic API Key (`sk-ant-...`).
-> **Note**: The agents are globally configured to run strictly on the ultra-cheap, highly performant `claude-haiku-4-5` endpoint to minimize token overhead.
+# Add your API key to .env
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# Step 1: Initialize database and run agents
+python run_pipeline.py
+
+# Step 2: Launch dashboard
+streamlit run dashboard/streamlit_app.py
+```
 
 ---
 
-## Execution Launch
+## Project Structure
 
-### 1. Ingest CRM Database
-Process your raw lead data into the SQLite engine natively:
-```bash
-python pipeline_ai/run_pipeline.py
 ```
-*(Tip: Once `Init DB...` finishes processing the leads, you can interrupt exactly here (`Ctrl+C`) to skip the synchronous terminal logging and jump straight into the visual frontend).*
-
-### 2. Launch Streamlit Intelligence Platform
-Start your server on `localhost`:
-```bash
-streamlit run pipeline_ai/dashboard/streamlit_app.py
+pipeline/
+├── lead_database.csv                # Leadsforge dataset (114 companies)
+├── README.md
+└── pipeline_ai/
+    ├── .env                         # API key configuration
+    ├── run_pipeline.py              # Pipeline orchestrator
+    ├── data/pipeline.db             # SQLite database
+    ├── app/
+    │   ├── config.py                # Environment settings
+    │   ├── database.py              # SQLAlchemy engine
+    │   ├── models.py                # ORM schema
+    │   ├── agents/
+    │   │   ├── intent_agent.py      # Intent scoring (0-100)
+    │   │   ├── problem_agent.py     # Pain point detection
+    │   │   ├── sequence_agent.py    # Hot/Warm/Cold/Ignore
+    │   │   ├── pitch_agent.py       # Cold email generation
+    │   │   ├── query_agent.py       # NL→SQL query parser
+    │   │   └── report_agent.py      # Intelligence, Strategy, Email, Analytics agents
+    │   └── services/
+    │       ├── dataset_service.py   # CSV ingestion
+    │       └── simulation_service.py # Event simulation
+    └── dashboard/
+        └── streamlit_app.py         # Streamlit UI
 ```
 
-### Platform Features
-- **Markdown AI Exports**: Intelligence Reports dynamically stream down as universally readable `.md` strings for fast CRM copy-pasting.
-- **Live Search Images**: Streams actual live-scraped corporate logs and software analytics into the platform UI.
-- **KPI Funnel Analytics**: Interactive visual abstractions built with `plotly` analyzing the granular conversion rate performance of your cold sequences!
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| AI Engine | Claude Haiku 4.5 (Anthropic API) |
+| Database | SQLite + SQLAlchemy ORM |
+| Web Scraping | requests + BeautifulSoup4 |
+| Frontend | Streamlit |
+| Visualization | Plotly |
+| Export | Markdown file download |
