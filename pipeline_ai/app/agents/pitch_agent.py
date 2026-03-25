@@ -39,7 +39,7 @@ def generate_pitch(industry: str, company_size: str, job_title: str, problem: st
         """
         
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-haiku-4-5",
             max_tokens=300,
             temperature=0.7,
             messages=[

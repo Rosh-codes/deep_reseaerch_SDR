@@ -1,5 +1,6 @@
 import anthropic
 import json
+import re
 from app.config import settings
 
 def parse_user_query(query: str) -> dict:
@@ -8,41 +9,48 @@ def parse_user_query(query: str) -> dict:
     """
     api_key = settings.ANTHROPIC_API_KEY
     if not api_key or api_key == "your_anthropic_api_key_here":
-        return {} # Safe fallback returns empty filters
+        return {} 
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
         
         prompt = f"""
-        You are an AI data retrieval agent querying a SQLite database of leads.
-        Extract the target criteria from the user's natural language query into a strict JSON format.
-        Available fields:
-        - industry (string, e.g. 'B2B SaaS', 'Fintech', 'Marketing Agency', 'Recruitment', 'E-commerce Brand')
-        - company_size (string, e.g. 'Large', 'Medium', 'Small')
-        - job_title (string, e.g. 'Head of Sales', 'VP', 'Founder', 'CFO')
+        You are an AI data retrieval agent querying a database of business leads.
+        Extract target criteria from the user's query into a STRICT JSON format.
+        
+        Available fields for the JSON mapping:
+        - "industry": Map their request securely to broad standard terms if asked (e.g. 'SaaS', 'Fintech', 'Marketing', 'Ecommerce', 'Recruitment', 'Software', 'AI'). E.g., 'finance' -> 'Fintech'.
+        - "company_size": Map to terms like 'Large', 'Medium', or 'Small'.
+        - "job_title": Extract the target professional role (e.g. 'Sales', 'Growth', 'CEO').
 
-        If a field is not mentioned, exclude it from the JSON completely.
-        DO NOT return any other text besides the raw JSON object. Never include markdown markers.
+        If the user mentions anything related to an industry, infer it accurately. 
+        If a field is NOT determinable from the prompt, OMIT it from the JSON.
+        
+        CRITICAL RULES:
+        1. OUTPUT ONLY THE RAW JSON DICT. NOT A SINGLE EXTRA WORD.
+        2. NO MARKDOWN. NO CODE BLOCKS.
+        
+        Example outputs:
+        {{"industry": "Fintech"}}
+        {{"job_title": "Sales", "company_size": "Large"}}
         
         User Query: "{query}"
         """
         
         message = client.messages.create(
-            model="claude-3-haiku-20240307", # Smaller model for instant routing
+            model="claude-haiku-4-5",
             max_tokens=150,
             temperature=0.0,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
         
         result = message.content[0].text.strip()
-        if result.startswith("```json"):
-            result = result[7:-3]
-        elif result.startswith("```"):
-            result = result[3:-3]
-            
-        return json.loads(result)
+        
+        # Regex matching to forcibly extract the JSON blob if wrapped
+        match = re.search(r'\{.*?\}', result, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        return {}
     except Exception as e:
         print(f"Error parsing query: {e}")
         return {}

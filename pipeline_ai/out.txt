@@ -1,0 +1,40 @@
+--------------------------------------------------
+Testing connection with Anthropic API...
+Key Prefix: sk-ant-api03...
+--------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\check_api_status.py", line 23, in <module>
+    msg = client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=10,
+        messages=[{"role": "user", "content": "Just reply 'Hello'"}]
+    )
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\venv\Lib\site-packages\anthropic\_utils\_utils.py", line 282, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\venv\Lib\site-packages\anthropic\resources\messages\messages.py", line 996, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/v1/messages",
+        ^^^^^^^^^^^^^^^
+    ...<30 lines>...
+        stream_cls=Stream[RawMessageStreamEvent],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\venv\Lib\site-packages\anthropic\_base_client.py", line 1364, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\venv\Lib\site-packages\anthropic\_base_client.py", line 1137, in request
+    raise self._make_status_error_from_response(err.response) from None
+anthropic.BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CZQ9pz46uXP5Qc1fZsExf'}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sanid\OneDrive - R\u012bgas Tehnisk\u0101 Universit\u0101te\Darbvirsma\pipeline\pipeline_ai\check_api_status.py", line 49, in <module>
+    print(f"\u274c [FAILED] API Connection Error (Status Code: {e.status_code}).")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sanid\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 0: character maps to <undefined>

@@ -6,6 +6,7 @@ class Company(Base):
     __tablename__ = "companies"
     
     company_id = Column(Integer, primary_key=True, index=True)
+    company_name = Column(String)
     industry = Column(String, index=True)
     company_size = Column(String)
     revenue = Column(Float)

@@ -1,64 +1,61 @@
-# Niche-Based Pipeline Intelligence Engine
+# Deep Research SDR Agent Pipeline
 
-An **Agentic SDR (Sales Development Representative) System** built to demonstrate advanced Pipeline Intelligence. This project leverages natural language processing (NLP) and Retrieval-Augmented Generation (RAG) to instantly query a database of leads, evaluate their intent, pinpoint their core problems, and generate highly targeted outreach pitches using Anthropic's Claude models.
+An autonomous Sales Intelligence platform that ingests raw CRM datasets, research domains via live web-scraping pipelines, and outputs hyper-personalized outreach leveraging Claude 4.5 Haiku.
 
-## Features
+## Architecture & Capabilities
 
-- **🧠 AI Query Engine (RAG)**: Uses **Claude 3 Haiku** to translate your natural language requests (e.g. "Find me mid-sized SaaS companies") into structured database filters instantly.
-- **🎯 Intelligent Lead Scoring**: Algorithmic heuristic analysis to assign Intent Scores (0-100) and Outreach Sequences (Hot/Warm/Cold) based on dataset signals.
-- **💡 Problem Detection**: Automatically maps company traits and data signals to core business problems.
-- **✉️ Deep Research Pitch Generation**: Uses the powerful **Claude 3.5 Sonnet** model to generate a strictly formatted 5-part cold email pitch (Observation -> Problem -> Solution -> Example -> CTA) for matched leads.
-- **🔄 Funnel Simulation**: A probabilistic event simulator that mimics a live outbound campaign (opens, clicks, replies, meetings booked) weighted by Lead Intent.
-- **📊 Analytics Dashboard**: A sleek Streamlit interface to trace Live Funnel Metrics, High-Converting Signals, and analyze the Live Lead Pipeline.
+1. **RAG Database Pipeline**: Ingests flat `.csv` lead files into a highly relational local SQLite map.
+2. **AI Intent & Problem Agents**: Algorithmically predicts buying intent scores and pinpoints specific B2B operational bottlenecks dynamically.
+3. **Live Web OSINT Search**: Bypasses stagnant dataset limits by natively streaming live DuckDuckGo intelligence (company news, corporate hiring footprints, & high-res corporate media) into the context window.
+4. **Deep Sequence Modeling**: Employs Anthropic's lightning-fast `claude-haiku-4-5` to synthesize massive company intelligence profiles directly in the dashboard.
+5. **XML Robust Email Engine**: Generates highly specialized Cold, Warm, and Ignore messaging variants. Utilizes custom XML extraction logic to neutralize JSON parse truncation bugs during massive string generation.
 
-## System Architecture
+---
 
-The project consists of 5 modular AI "Agents" feeding off a normalized SQLite database:
-1. `Query Agent`: NLP -> Local DB Search
-2. `Intent Agent`: Signal -> Score
-3. `Problem Agent`: Signal -> Problem Mapping
-4. `Sequence Agent`: Score -> Campaign Type
-5. `Pitch Agent`: Context -> Claude 3.5 Sonnet -> Cold Email
+## Setup Instructions
 
-## Quickstart & Setup
-
-### 1. Prerequisites
-Ensure you have Python 3.9+ installed and Git configured. 
-
-### 2. Environment Setup
+### Environment Verification
+Ensure you have Python 3.10+ installed and create a Virtual Environment:
 ```bash
-# Navigate to the project directory
-cd pipeline_ai
-
-# Create a virtual environment
 python -m venv venv
 
-# Activate the virtual environment
-# On Windows:
-.\venv\Scripts\activate
-# On Mac/Linux:
+# Windows
+.\venv\Scripts\activate   
+
+# Mac/Linux
 source venv/bin/activate
+```
 
-# Install all required dependencies
+### Installation
+```bash
+cd pipeline_ai
 pip install -r requirements.txt
+pip install duckduckgo-search
 ```
 
-### 3. API Keys
-1. Locate the `.env` file in the `pipeline_ai` directory.
-2. Open it and replace the placeholder with your actual Anthropic API Key:
-   ```env
-   ANTHROPIC_API_KEY=sk-ant-api03...
-   ```
+### Configuration
+1. Open the `.env` file located in the `pipeline_ai` directory.
+2. Insert your active Anthropic API Key (`sk-ant-...`).
+> **Note**: The agents are globally configured to run strictly on the ultra-cheap, highly performant `claude-haiku-4-5` endpoint to minimize token overhead.
 
-### 4. Running the Pipeline
-To initialize the SQLite database, ingest the CRM Data, process the AI Agents, and simulate the event outcomes, run:
+---
+
+## Execution Launch
+
+### 1. Ingest CRM Database
+Process your raw lead data into the SQLite engine natively:
 ```bash
-python run_pipeline.py
+python pipeline_ai/run_pipeline.py
 ```
-*(Note: Because this script deeply processes matches via the Claude API, it may take 1-2 minutes to execute fully.)*
+*(Tip: Once `Init DB...` finishes processing the leads, you can interrupt exactly here (`Ctrl+C`) to skip the synchronous terminal logging and jump straight into the visual frontend).*
 
-### 5. Launch the Dashboard
-Fire up the Streamlit interface to access the Query Engine and view your Agentic Pipeline Analytics:
+### 2. Launch Streamlit Intelligence Platform
+Start your server on `localhost`:
 ```bash
-streamlit run dashboard/streamlit_app.py
+streamlit run pipeline_ai/dashboard/streamlit_app.py
 ```
+
+### Platform Features
+- **Markdown AI Exports**: Intelligence Reports dynamically stream down as universally readable `.md` strings for fast CRM copy-pasting.
+- **Live Search Images**: Streams actual live-scraped corporate logs and software analytics into the platform UI.
+- **KPI Funnel Analytics**: Interactive visual abstractions built with `plotly` analyzing the granular conversion rate performance of your cold sequences!
