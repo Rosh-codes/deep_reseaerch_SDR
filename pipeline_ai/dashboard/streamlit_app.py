@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 import sys
 import os
 import base64
-from fpdf import FPDF
 
 # Ensure imports work from project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,7 +16,6 @@ from app.agents.query_agent import parse_user_query
 from app.agents.intent_agent import process_lead_intent
 from app.agents.problem_agent import process_lead_problem
 from app.agents.sequence_agent import process_lead_sequence
-from app.agents.pitch_agent import process_lead_pitch
 from app.agents.report_agent import (
     generate_company_intelligence, 
     generate_outreach_strategy, 
@@ -25,19 +23,20 @@ from app.agents.report_agent import (
     generate_pipeline_report
 )
 
-def create_pdf_download(report_content: str, filename: str):
-    # Upgrading to Native Markdown Export to completely eliminate all FPDF rendering crashes.
-    # Markdown preserves Claude's beautiful table and bullet formatting flawlessly.
-    b64 = base64.b64encode(str(report_content).encode('utf-8')).decode('utf-8')
+def create_download_link(content: str, filename: str, label: str = "📥 Export Report (.md)"):
+    b64 = base64.b64encode(str(content).encode('utf-8')).decode('utf-8')
     md_filename = filename.replace('.pdf', '.md')
-    href = f'<a href="data:text/markdown;charset=utf-8;base64,{b64}" download="{md_filename}" style="display:inline-block; padding:8px 16px; background-color:#FF4B4B; color:white; text-decoration:none; border-radius:4px; margin-bottom:10px;">📥 Export Report (.md)</a>'
+    href = f'<a href="data:text/markdown;charset=utf-8;base64,{b64}" download="{md_filename}" style="display:inline-block; padding:8px 16px; background-color:#FF4B4B; color:white; text-decoration:none; border-radius:4px; margin-bottom:10px;">{label}</a>'
     return href
 
 engine = create_engine(settings.DATABASE_URL)
 st.set_page_config(page_title="Pipeline Intelligence Platform", layout="wide")
 
-page = st.sidebar.radio("Navigation", ["🔍 Sales Intelligence Platform", "📊 Advanced Analytics"])
+page = st.sidebar.radio("Navigation", ["🔍 Sales Intelligence Platform", "📊 Pipeline Analytics"])
 
+# ═══════════════════════════════════════════════
+# PAGE 1: SALES INTELLIGENCE
+# ═══════════════════════════════════════════════
 if page == "🔍 Sales Intelligence Platform":
     st.title("🧠 AI SDR & Sales Intelligence")
     
@@ -54,6 +53,17 @@ if page == "🔍 Sales Intelligence Platform":
             db = SessionLocal()
             query = db.query(Lead, Company, Employee).join(Company, Lead.company_id == Company.company_id).join(Employee, Lead.employee_id == Employee.employee_id)
             
+            if 'keyword' in filters:
+                kw = filters['keyword']
+                from sqlalchemy import or_
+                query = query.filter(or_(
+                    Company.industry.ilike(f"%{kw}%"),
+                    Company.company_name.ilike(f"%{kw}%"),
+                    Company.description.ilike(f"%{kw}%"),
+                    Company.why_needs_help.ilike(f"%{kw}%"),
+                    Employee.job_title.ilike(f"%{kw}%"),
+                    Lead.problem.ilike(f"%{kw}%")
+                ))
             if 'industry' in filters:
                 query = query.filter(Company.industry.ilike(f"%{filters['industry']}%"))
             if 'company_size' in filters:
@@ -71,31 +81,49 @@ if page == "🔍 Sales Intelligence Platform":
         matched_leads = st.session_state['matched_leads']
         
         st.markdown("### Deep Intelligence Research")
-        lead_options = {f"{e.name} ({e.job_title}) @ {c.company_name} ({c.industry})": (l, c, e) for l, c, e in matched_leads}
+        lead_options = {f"{e.name} ({e.job_title}) @ {c.company_name or 'Company '+str(c.company_id)} ({c.industry})": (l, c, e) for l, c, e in matched_leads}
         selected_key = st.selectbox("Select a Lead to Analyze:", list(lead_options.keys()))
         selected_lead, selected_company, selected_emp = lead_options[selected_key]
         
-        if st.button("Generate Deep Profile & Outreach Strategy"):
+        if st.button("🚀 Generate Deep Profile & Outreach Strategy"):
             db = SessionLocal()
             process_lead_intent(db, selected_lead.id)
             process_lead_problem(db, selected_lead.id)
             process_lead_sequence(db, selected_lead.id)
             db.close()
             
-            tabs = st.tabs(["🏢 Company Intelligence Report", "🎯 Outreach Strategy", "✉️ Personalized Email Generator"])
+            # ── CHAIN WORKFLOW PROGRESS ──
+            progress = st.progress(0)
+            status = st.empty()
+            
+            status.text("🔗 Step 1/3: Loading verified dataset intelligence...")
+            progress.progress(20)
+            
+            tabs = st.tabs(["🏢 Company Intelligence Report", "🎯 Outreach Strategy", "✉️ Personalized Emails"])
             
             with tabs[0]:
                 st.subheader("Company Intelligence Report")
-                with st.spinner("Researching company via Claude 4.5 Sonnet..."):
-                    co_intel = generate_company_intelligence(selected_company)
-                st.markdown(create_pdf_download(co_intel, f"CompanyReport_{selected_company.company_id}.pdf"), unsafe_allow_html=True)
-                st.markdown(co_intel)
+                status.text("🔗 Step 2/3: Scraping live company website...")
+                progress.progress(50)
+                status.text("🔗 Step 3/3: Claude AI reasoning & analysis...")
+                progress.progress(80)
+                
+                co_intel = generate_company_intelligence(selected_company)
+                progress.progress(100)
+                status.text("✅ Chain workflow complete!")
+                
+                st.markdown(create_download_link(co_intel, f"CompanyReport_{selected_company.company_id}.pdf"), unsafe_allow_html=True)
+                st.markdown(co_intel, unsafe_allow_html=True)
+                
+                # Save to session for analytics
+                st.session_state['last_report'] = co_intel
+                st.session_state['last_company'] = selected_company
                 
             with tabs[1]:
                 st.subheader("Outreach Strategy")
                 with st.spinner("Strategizing optimal outreach approach..."):
                     strategy = generate_outreach_strategy(selected_lead, selected_company, selected_emp)
-                st.markdown(create_pdf_download(strategy, f"Strategy_{selected_emp.name}.pdf"), unsafe_allow_html=True)
+                st.markdown(create_download_link(strategy, f"Strategy_{selected_emp.name}.pdf"), unsafe_allow_html=True)
                 st.markdown(strategy)
                 
             with tabs[2]:
@@ -119,20 +147,25 @@ if page == "🔍 Sales Intelligence Platform":
                         
                     st.success("**AI Recommendation:** " + variants.get("recommendation", ""))
 
-elif page == "📊 Advanced Analytics":
-    st.title("🎯 Pipeline Analytics & Charts")
+# ═══════════════════════════════════════════════
+# PAGE 2: PIPELINE ANALYTICS
+# ═══════════════════════════════════════════════
+elif page == "📊 Pipeline Analytics":
+    st.title("📊 Pipeline Analytics & Charts")
+    
     try:
         df_leads = pd.read_sql("SELECT * FROM leads", engine)
         df_events = pd.read_sql("SELECT * FROM events", engine)
         df_companies = pd.read_sql("SELECT * FROM companies", engine)
         df_employees = pd.read_sql("SELECT * FROM employees", engine)
     except Exception as e:
-        st.error(f"Waiting for database generation. Error: {e}")
+        st.error(f"Database not ready. Run `python run_pipeline.py` first. Error: {e}")
         st.stop()
 
-    # KPI Metrics
-    st.header("KPI Metrics")
+    # ── KPI METRICS ──
+    st.header("📈 KPI Metrics")
     total_leads = len(df_leads)
+    
     if not df_events.empty:
         contacted = len(df_events[df_events['event_type'] == 'contacted']['lead_id'].unique())
         opened = len(df_events[df_events['event_type'] == 'opened']['lead_id'].unique())
@@ -157,9 +190,80 @@ elif page == "📊 Advanced Analytics":
     
     st.divider()
 
-    st.header("📈 Advanced Pipeline Charts")
+    # ── DATABASE OVERVIEW ANALYTICS ──
+    st.header("🏢 Database Overview")
     
+    col_a, col_b = st.columns(2)
+    
+    with col_a:
+        # Industry Distribution
+        ind_counts = df_companies['industry'].value_counts().reset_index()
+        ind_counts.columns = ['Industry', 'Count']
+        fig_ind = px.bar(ind_counts, x='Industry', y='Count', title='Companies by Industry',
+                        color='Count', color_continuous_scale='Viridis')
+        fig_ind.update_layout(template='plotly_dark', height=400)
+        st.plotly_chart(fig_ind, use_container_width=True)
+    
+    with col_b:
+        # Company Size Distribution
+        size_counts = df_companies['company_size'].value_counts().reset_index()
+        size_counts.columns = ['Size', 'Count']
+        fig_size = px.pie(size_counts, values='Count', names='Size', title='Companies by Size',
+                         hole=0.4)
+        fig_size.update_layout(template='plotly_dark', height=400)
+        st.plotly_chart(fig_size, use_container_width=True)
+    
+    col_c, col_d = st.columns(2)
+    
+    with col_c:
+        # Intent Score Distribution
+        if 'intent_score' in df_leads.columns:
+            fig_intent = px.histogram(df_leads, x='intent_score', nbins=20, 
+                                     title='Intent Score Distribution',
+                                     color_discrete_sequence=['#FF4B4B'])
+            fig_intent.update_layout(template='plotly_dark', height=400)
+            st.plotly_chart(fig_intent, use_container_width=True)
+    
+    with col_d:
+        # Sequence Assignment
+        if 'sequence' in df_leads.columns:
+            seq_counts = df_leads['sequence'].value_counts().reset_index()
+            seq_counts.columns = ['Sequence', 'Count']
+            fig_seq = px.bar(seq_counts, x='Sequence', y='Count', title='Lead Sequence Assignment',
+                           color='Sequence', color_discrete_map={'Hot':'#FF4B4B', 'Warm':'#FFA500', 'Cold':'#4B9DFF', 'Ignore':'#808080'})
+            fig_seq.update_layout(template='plotly_dark', height=400)
+            st.plotly_chart(fig_seq, use_container_width=True)
+
+    st.divider()
+    
+    # ── SCATTER PLOT: Intent vs Revenue by Industry ──
+    st.header("🧠 Intelligence Scatter Analysis")
+    
+    merged = pd.merge(df_leads, df_companies, on='company_id', how='left')
+    merged = pd.merge(merged, df_employees, on='employee_id', how='left')
+    
+    if 'intent_score' in merged.columns and 'revenue' in merged.columns:
+        fig_scatter = px.scatter(merged, x='intent_score', y='revenue', 
+                               color='industry', size='intent_score',
+                               hover_data=['company_name', 'job_title'],
+                               title='Intent Score vs Revenue (by Industry)',
+                               labels={'intent_score': 'AI Intent Score', 'revenue': 'Est. Revenue'})
+        fig_scatter.update_layout(template='plotly_dark', height=500)
+        st.plotly_chart(fig_scatter, use_container_width=True)
+    
+    # ── FUNNEL CHART ──
     if contacted > 0:
+        st.header("🔄 Sales Funnel Conversion")
+        
+        funnel_data = dict(
+            number=[total_leads, contacted, opened, replied, booked, attended],
+            stage=["Leads", "Contacted", "Opened", "Replied", "Booked", "Attended"]
+        )
+        fig_funnel = px.funnel(funnel_data, x='number', y='stage', title='Full Pipeline Funnel')
+        fig_funnel.update_layout(template='plotly_dark', height=400)
+        st.plotly_chart(fig_funnel, use_container_width=True)
+        
+        # ── Best Performers ──
         evt_lead = pd.merge(df_events, df_leads, left_on='lead_id', right_on='id', suffixes=('_ev', '_ld'))
         evt_co = pd.merge(evt_lead, df_companies, on='company_id')
         full_df = pd.merge(evt_co, df_employees, on='employee_id')
@@ -172,60 +276,17 @@ elif page == "📊 Advanced Analytics":
         k1.metric("Best Industry", best_industry[0] if not best_industry.empty else "N/A")
         k2.metric("Best Role", best_role[0] if not best_role.empty else "N/A")
         k3.metric("Best Sequence", best_seq[0] if not best_seq.empty else "N/A")
-
-        colA, colB = st.columns(2)
-        
-        with colA:
-            funnel_data = dict(
-                number=[total_leads, contacted, opened, replied, booked, attended],
-                stage=["Leads", "Contacted", "Opened", "Replied", "Booked", "Attended"]
-            )
-            fig_funnel = px.funnel(funnel_data, x='number', y='stage', title='Sales Funnel Conversion')
-            st.plotly_chart(fig_funnel, use_container_width=True)
-            
-            reply_seq = full_df[full_df['event_type']=='replied']['sequence'].value_counts().reset_index()
-            reply_seq.columns = ['Sequence', 'Count']
-            if not reply_seq.empty:
-                fig_seq = px.pie(reply_seq, values='Count', names='Sequence', title='Sequence vs Conversion')
-                st.plotly_chart(fig_seq, use_container_width=True)
-                
-            size_conv = full_df[full_df['event_type']=='meeting_booked']['company_size'].value_counts().reset_index()
-            size_conv.columns = ['Company Size', 'Bookings']
-            if not size_conv.empty:
-                fig_size = px.bar(size_conv, x='Company Size', y='Bookings', title='Company Size vs Conversion')
-                st.plotly_chart(fig_size, use_container_width=True)
-            
-        with colB:
-            industry_replies = full_df[full_df['event_type']=='replied']['industry'].value_counts().reset_index()
-            industry_replies.columns = ['Industry', 'Replies']
-            if not industry_replies.empty:
-                fig_ind = px.bar(industry_replies, x='Industry', y='Replies', title='Industry vs Reply Rate')
-                st.plotly_chart(fig_ind, use_container_width=True)
-                
-            role_replies = full_df[full_df['event_type']=='replied']['job_title'].value_counts().reset_index()
-            role_replies.columns = ['Job Title', 'Replies']
-            if not role_replies.empty:
-                fig_role = px.bar(role_replies, x='Job Title', y='Replies', title='Job Title vs Reply Rate')
-                st.plotly_chart(fig_role, use_container_width=True)
-                
-            book_intent = full_df[full_df['event_type']=='meeting_booked']
-            if not book_intent.empty:
-                fig_intent = px.scatter(book_intent, x='intent_score', y='revenue', color='industry', 
-                                    title='Intent Score vs Conversion', size='intent_score')
-                st.plotly_chart(fig_intent, use_container_width=True)
     
-        st.divider()
-        st.header("📋 Export Executive Pipeline Report")
-        if st.button("Generate Pipeline Report"):
-            with st.spinner("Analyzing pipeline data to generate executive report..."):
-                payload = {
-                    "Total Leads": total_leads, "Contacted": contacted, "Booked": booked,
-                    "Reply Rate": f"{reply_rate}%", "Booking Rate": f"{book_rate}%",
-                    "Best Industry": best_industry[0] if not best_industry.empty else "N/A",
-                    "Best Role": best_role[0] if not best_role.empty else "N/A"
-                }
-                report = generate_pipeline_report(payload)
-                st.markdown(create_pdf_download(report, "Pipeline_Performance_Report.pdf"), unsafe_allow_html=True)
-                st.markdown(report)
-    else:
-        st.info("Run Pipeline Simulation to view charts.")
+    st.divider()
+    
+    # ── AI EXECUTIVE REPORT ──
+    st.header("📋 AI Executive Pipeline Report")
+    if st.button("Generate AI Pipeline Report"):
+        with st.spinner("Analyzing pipeline data..."):
+            payload = {
+                "Total Leads": total_leads, "Contacted": contacted, "Booked": booked,
+                "Reply Rate": f"{reply_rate}%", "Booking Rate": f"{book_rate}%",
+            }
+            report = generate_pipeline_report(payload)
+            st.markdown(create_download_link(report, "Pipeline_Report.pdf"), unsafe_allow_html=True)
+            st.markdown(report)

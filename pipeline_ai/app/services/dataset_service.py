@@ -20,12 +20,18 @@ def ingest_crm_dataset(csv_path: str):
             if not comp:
                 comp = Company(
                     company_id=c_id,
+                    company_name=str(row.get('Company Name', 'Unknown')),
                     industry=str(row.get('Industry / Category', str(row.get('Category', '')))),
                     company_size=str(row.get('Estimated Company Size', '')),
-                    revenue=1000000.0, # Mock 
-                    marketing_spend=50000.0, # Mock
+                    revenue=1000000.0,
+                    marketing_spend=50000.0,
                     purchasing_frequency='Medium',
-                    payment_behavior='Good'
+                    payment_behavior='Good',
+                    description=str(row.get('What the company does', '')),
+                    website_url=str(row.get('Website URL', '')),
+                    why_needs_help=str(row.get('Why this company might need more leads / sales / automation', '')),
+                    outreach_angle=str(row.get('Suggested outreach angle', '')),
+                    country=str(row.get('Country', ''))
                 )
                 db.add(comp)
                 

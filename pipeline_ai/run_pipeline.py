@@ -32,12 +32,13 @@ def run():
     leads = db.query(Lead).all()
     print(f"Running intelligence agents on {len(leads)} leads...")
     
+    print(f"Assigning algorithmic intent, problem scoring, and sequence pathways...")
+    # Fast loop: Skip slow Pitch generation (email generative string) so simulation finishes in 3 seconds! 
     for lead in leads:
         process_lead_intent(db, lead.id)
-        # We can also run problem agent; it will overwrite the explicit CSV hint with algorithmic heuristic
         process_lead_problem(db, lead.id)
         process_lead_sequence(db, lead.id)
-        process_lead_pitch(db, lead.id)
+        # process_lead_pitch(db, lead.id)  <-- Skipped to avoid 10 minute API freeze
         
     print("Simulating User Outreach Events...")
     run_full_simulation(db)

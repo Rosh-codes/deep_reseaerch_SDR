@@ -13,6 +13,12 @@ class Company(Base):
     marketing_spend = Column(Float)
     purchasing_frequency = Column(String)
     payment_behavior = Column(String)
+    # Rich dataset fields
+    description = Column(Text, nullable=True)
+    website_url = Column(String, nullable=True)
+    why_needs_help = Column(Text, nullable=True)
+    outreach_angle = Column(Text, nullable=True)
+    country = Column(String, nullable=True)
 
 class Employee(Base):
     __tablename__ = "employees"
